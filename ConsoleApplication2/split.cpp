@@ -1,4 +1,3 @@
-// Main cpp file
 #include "split.h"
 
 // Endianness can go die in a hole somewhere

@@ -5,3 +5,4 @@ TODO
 - Implement exceptions, better errors
 - Strip mzm stuff out into its own library
 - Merge splitsgui into this
+- ENSURE THREAD SAFETY, ADD CHECKING FOR THREADS

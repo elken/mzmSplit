@@ -5,6 +5,8 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mzmSplit", "ConsoleApplication2\ConsoleApplication2.vcxproj", "{77BA5FE4-FD9E-4972-99E1-E7240B012372}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "splitsGUI", "splitsGUI\splitsGUI.vcxproj", "{5F68D7E0-D047-42F6-835D-6E0374CA4604}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -21,6 +23,12 @@ Global
 		{77BA5FE4-FD9E-4972-99E1-E7240B012372}.Release|Win32.Build.0 = Release|Win32
 		{77BA5FE4-FD9E-4972-99E1-E7240B012372}.Release|x64.ActiveCfg = Release|x64
 		{77BA5FE4-FD9E-4972-99E1-E7240B012372}.Release|x64.Build.0 = Release|x64
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Debug|Win32.Build.0 = Debug|Win32
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Debug|x64.ActiveCfg = Debug|Win32
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Release|Win32.ActiveCfg = Release|Win32
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Release|Win32.Build.0 = Release|Win32
+		{5F68D7E0-D047-42F6-835D-6E0374CA4604}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

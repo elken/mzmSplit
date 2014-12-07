@@ -214,7 +214,7 @@ int main()
 {
 	Run s;
 	// Find the window handle based on the title
-	s.window = FindWindow(NULL, _T("VBA-RR v24 svn480"));
+	s.window = FindWindow(NULL, LPCSTR("VBA-RR v24 svn480"));
 
 	if (s.window != 0)
 	{

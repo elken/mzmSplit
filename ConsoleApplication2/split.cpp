@@ -1,12 +1,12 @@
 #include "split.h"
 
-/*
-TODO: 
-- Flag for splits
-*/
+Segment Run::getSegment(int i)
+{
+	return run->at(i);
+}
 
 // Endianness can go die in a hole somewhere
-unsigned int Split::endianSwap(unsigned const int& x)
+unsigned int Run::endianSwap(unsigned const int& x)
 {
 	return (((x & 0x000000FF) << 24) |
 		((x & 0x0000FF00) << 8) |
@@ -14,8 +14,37 @@ unsigned int Split::endianSwap(unsigned const int& x)
 		((x & 0xFF000000) >> 24));
 }
 
+void Run::missilesCheck()
+{
+		//ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), (LPVOID)&missilesAddress, 4, &bytesRead);
+		ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + MISSILE_OFFSET), (LPVOID)&missilesValue, 4, &bytesRead);
+		std::string missiles_str = hexOutput(missilesValue, bytesRead);
+		
+		if ((missilesValue & ~0xFFFFFF00) != 0)
+		{
+			missilesStat.first = true;
+		}
+		if ((missilesValue & ~0xFF00FFFF) != 0)
+		{
+			missilesStat.second = true;
+		}
+}
+
+void Run::invCheck()
+{
+	ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + INV_OFFSET), &invValue, 4, &bytesRead);
+	invStat.second = endianSwap((int)invValue);
+	invStat.first &= ~0x00FF00FF;
+	invStat.second &= ~0x00FF00FF;
+
+	if (invStat.first < invStat.second)
+	{
+		invS =  true;
+	}
+}
+
 // Neat function to format a hex address into bytes for easy viewing.
-std::string Split::hexOutput(int128_t x, bool flag)
+std::string Run::hexOutput(int128_t x, bool flag)
 {
 	std::stringstream s;
 	s << std::hex << std::setfill('0') <<
@@ -26,7 +55,7 @@ std::string Split::hexOutput(int128_t x, bool flag)
 	return s.str();
 }
 
-std::string Split::hexOutput(int128_t x, SIZE_T b)
+std::string Run::hexOutput(int128_t x, SIZE_T b)
 {
 	std::stringstream s;
 	s << std::setfill('0');
@@ -39,7 +68,7 @@ std::string Split::hexOutput(int128_t x, SIZE_T b)
 }
 
 // Decided to merge parseTime & the time acquisition into one function
-std::string Split::getTime()
+std::string Run::getTime()
 {
 	std::uint64_t x = 0;
 	ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + GAMETIME_OFFSET), &x, 4, &bytesRead);
@@ -48,16 +77,14 @@ std::string Split::getTime()
 	return s.str();
 }
 
-Run Split::loadSplits()
+Run::Attempt Run::loadSplits()
 {
 	std::ifstream splits("splits.xml");
 
 	ptree pt;
 	read_xml(splits, pt);
 
-	Run r;
-
-	Segment s;
+	Attempt r;
 
 	for (auto i : pt.get_child("Run.Segments"))
 	{
@@ -71,16 +98,16 @@ Run Split::loadSplits()
 	return r;
 }
 
-int Split::printSplits(Run s)
+int Run::printSplits()
 {
-	for (auto i : s)
+	for (auto i : *run)
 	{
-		std::cout << i.id << ", " << i.name << ", " << i.pb << std::endl;
+		output(i.id << ", " << i.name << ", " << i.pb);
 	}
 	return 0;
 }
 
-int Split::saveSplits(Run s)
+int Run::saveSplits()
 {
 	std::ofstream splits("splits.xml", std::ostream::out);
 
@@ -89,13 +116,13 @@ int Split::saveSplits(Run s)
 
 	std::vector<std::string> names, pb;
 
-	for (auto i : s)
+	for (auto i : *run)
 	{
 		names.push_back(i.name);
 		pb.push_back(i.pb);
 	}
 
-	for (auto i = 0U; i < s.size(); i++)
+	for (auto i = 0U; i < run->size(); i++)
 	{
 		ptree &segment = tree.add("Run.Segments.Segment", "");
 		segment.add("Name", names.at(i));
@@ -107,14 +134,12 @@ int Split::saveSplits(Run s)
 	return 0;
 }
 
-int Split::doSplit()
+int Run::doSplit()
 {
 	int count = 0;
-	Run r = loadSplits();
-	std::vector<std::string> names, pb, cur;
-	std::vector<int> bits;
+	*run = loadSplits();
 
-	for (auto i : r)
+	for (auto i : *run)
 	{
 		names.push_back(i.name);
 		pb.push_back(i.pb);
@@ -122,97 +147,69 @@ int Split::doSplit()
 
 	if (ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), &invAddress, 4, &bytesRead))
 	{
-		if (ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + MISSILE_OFFSET), &invValue, 4, &bytesRead))
+		if (!ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + MISSILE_OFFSET), &invValue, 4, &bytesRead))
 		{
-			invStat.first = endianSwap((int)invValue);
-		}
-		else
-		{
-			std::cout << "ROM not loaded. (" << GetLastError() << ")" << std::endl;
+			output("ROM not loaded. (" << GetLastError() << ")");
 
 			if (bytesRead != 0)
-				std::cout << "Bytes read: " << bytesRead << std::endl;
+				output("Bytes read: " << bytesRead);
 		}
 	}
 	else
 	{
-		std::cout << "Failed to load offset. (" << GetLastError() << ")" << std::endl;
+		output("Failed to load offset. (" << GetLastError() << ")");
 
 		if (bytesRead != 0)
-			std::cout << "Bytes read: " << bytesRead << std::endl;
+			output("Bytes read: " << bytesRead);
 	}
 
 	do
 	{
-		if (!missilesStat.first)
+		std::thread invT(&Run::invCheck, this);
+		std::thread misT(&Run::missilesCheck, this);
+
+		invT.join();
+		misT.join();
+
+		if (invS)
 		{
-			ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), (LPVOID)&missilesAddress, 4, &bytesRead);
-			ReadProcessMemory(phandle, (LPCVOID)((DWORD)missilesAddress + MISSILE_OFFSET), (LPVOID)&missilesValue, 1, &bytesRead);
-			std::string missiles_str = hexOutput(missilesValue, bytesRead);
-
-			if (missiles_str.at(1) == '5')
-			{
-				missilesStat.first = true;
-			}
-
-		}
-
-		else if (!missilesStat.second)
-		{
-			ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), (LPVOID)&supersAddress, 4, &bytesRead);
-			ReadProcessMemory(phandle, (LPCVOID)((DWORD)supersAddress + SUPER_OFFSET), (LPVOID)&supersValue, 1, &bytesRead);
-			std::string missiles_str = hexOutput(supersValue, bytesRead);
-
-			if (missiles_str.at(1) == '2')
-			{
-				missilesStat.second = true;
-			}
-		}
-
-		ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + INV_OFFSET), &invValue, 4, &bytesRead);
-		invStat.second = endianSwap((int)invValue);
-		invStat.first &= ~0x00FF00FF;
-		invStat.second &= ~0x00FF00FF;
-
-		if (invStat.first < invStat.second)
-		{
-			std::cout << names.at(count) << " at " << getTime() << std::endl;
+			output(count << ": " << names.at(count) << " at " << getTime());
 			invStat.first = invStat.second;
-			r[count].pb = getTime();
+			invS = false;
 
-			count++;
+			run->at(count).pb = getTime();
+			++count;
 		}
 
-		if (missilesStat.first)
+		if (missilesStat.first || missilesStat.second)
 		{
-			std::cout << names.at(count) << " at " << getTime() << std::endl;
-			invStat.first = invStat.second;
-			r[count].pb = getTime();
+			output(count << ": " << names.at(count) << " at " << getTime());
 
-			count++;
+
+			run->at(count).pb = getTime();
+			++count;
 		}
+	} 
+	while (count < COUNT_DEBUG);
 
-		if (missilesStat.second)
-		{
-			std::cout << names.at(count) << " at " << getTime() << std::endl;
-			invStat.first = invStat.second;
-			r[count].pb = getTime();
-
-			count++;
-		}
-
-	} while (count < 3);
-	saveSplits(r);
+	this->saveSplits();
 	return 0;
 }
 
-Split::Split(){}
-Split::~Split(){}
+Run::Run()
+{
+	run = new Attempt();
+}
+
+Run::~Run()
+{
+	delete run;
+}
 
 // TODO: Comment main()
 int main()
 {
-	Split s;
+	Run s;
 	// Find the window handle based on the title
 	s.window = FindWindow(NULL, _T("VBA-RR v24 svn480"));
 
@@ -222,9 +219,9 @@ int main()
 		GetWindowThreadProcessId(s.window, &s.pid);
 		s.phandle = OpenProcess(PROCESS_VM_READ, 0, s.pid);
 		if (!s.phandle)
-			std::cout << "Could not get handle! (" << GetLastError() << ")" << std::endl;
+			output("Could not get handle! (" << GetLastError() << ")");
 		else
-			std::cout << "Handle obtained, PID: " << s.pid << std::endl << std::endl;
+			output("Handle obtained, PID: " << s.pid);
 
 		// Wiccan magic to find the base address
 		HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, s.pid);
@@ -237,7 +234,7 @@ int main()
 	}
 	else
 	{
-		std::cout << "Unable to find window, try again. (" << GetLastError() << ")" << std::endl;
+		output("Unable to find window, try again. (" << GetLastError() << ")");
 		return 1;
 	}
 	return 0;

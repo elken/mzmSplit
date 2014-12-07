@@ -28,14 +28,12 @@ using namespace boost::multiprecision;
 #define FRAME_COUNTER_OFFSET 0x004F45F4
 #define GAMETIME_OFFSET 0x150
 #define MISSILE_OFFSET 0x1532
+#define SUPERS_OFFSET 0x1534
 #define INV_OFFSET 0x153C
 
 // cout shorthand because I'm impossibly lazy
 #define output(a) std::cout << a << std::endl
 
-// Debug defines, remove when done
-
-#define COUNT_DEBUG 5
 struct Segment
 {
 	int id;
@@ -44,38 +42,51 @@ struct Segment
 	std::vector<std::string> hist;
 };
 
+struct Inv
+{
+	bool missiles;
+	bool supers;
+	bool hasMissiles;
+	bool hasSupers;
+	bool hasInv;
+
+	int128_t iOld;
+	int128_t iNew;
+
+	int mOld;
+	int mNew;
+
+	int128_t invValue = 0;
+	int missilesValue = 0;
+};
+
+struct Window
+{
+	DWORD pid;
+	DWORD baseAddress;
+	HWND window;
+	HANDLE phandle;
+	SIZE_T bytesRead = 0;
+	int iramAddr = 0;
+};
+
 class Run
 {
 public:
 	typedef std::vector<Segment> Attempt;
-	Attempt* run;
-	DWORD pid;
-	int iramAddr = 0;
-	int missilesAddress = 0;
-	int128_t invValue;
-	int missilesValue = 0;
-
-	SIZE_T bytesRead = 0;
-	DWORD baseAddress;
-	HWND window;
-	HANDLE phandle;
-	std::pair<int128_t, int128_t> invStat;
-	std::pair<bool, bool> missilesStat;
-	bool invS = false;
+	Attempt* attempt;
+	Window* window;
+	Inv* inv;
 	std::vector<std::string> names, pb, cur;
 
-
-	unsigned int endianSwap(unsigned const int&);
-	std::string hexOutput(int128_t, bool);
-	std::string hexOutput(int128_t, SIZE_T);
 	std::string getTime();
+	void supersCheck();
 	void missilesCheck();
 	void invCheck();
-	Attempt loadSplits();
+	void loadSplits();
 	int printSplits();
 	int saveSplits();
 	int doSplit();
-	Segment getSegment(int);
 
 	Run();
 	~Run();

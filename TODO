@@ -1,0 +1,7 @@
+TODO
+
+- Overall cleaning (Lots of junk, optimizations)
+- Find a regex approach to FindWindow
+- Implement exceptions, better errors
+- Strip mzm stuff out into its own library
+- Merge splitsgui into this

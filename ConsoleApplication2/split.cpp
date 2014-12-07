@@ -16,8 +16,7 @@ unsigned int Run::endianSwap(unsigned const int& x)
 
 void Run::missilesCheck()
 {
-		//ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), (LPVOID)&missilesAddress, 4, &bytesRead);
-		ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + MISSILE_OFFSET), (LPVOID)&missilesValue, 4, &bytesRead);
+		ReadProcessMemory(phandle, (LPCVOID)((DWORD)iramAddr + MISSILE_OFFSET), (LPVOID)&missilesValue, 4, &bytesRead);
 		std::string missiles_str = hexOutput(missilesValue, bytesRead);
 		
 		if ((missilesValue & ~0xFFFFFF00) != 0)
@@ -32,7 +31,7 @@ void Run::missilesCheck()
 
 void Run::invCheck()
 {
-	ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + INV_OFFSET), &invValue, 4, &bytesRead);
+	ReadProcessMemory(phandle, (LPCVOID)((DWORD)iramAddr + INV_OFFSET), &invValue, 4, &bytesRead);
 	invStat.second = endianSwap((int)invValue);
 	invStat.first &= ~0x00FF00FF;
 	invStat.second &= ~0x00FF00FF;
@@ -71,7 +70,7 @@ std::string Run::hexOutput(int128_t x, SIZE_T b)
 std::string Run::getTime()
 {
 	std::uint64_t x = 0;
-	ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + GAMETIME_OFFSET), &x, 4, &bytesRead);
+	ReadProcessMemory(phandle, (LPCVOID)((DWORD)iramAddr + GAMETIME_OFFSET), &x, 4, &bytesRead);
 	std::stringstream s;
 	s << std::setfill('0') << std::setw(2) << (x & 0xFF) << ":" << std::setw(2) << ((x >> 8) & 0xFF) << ":" << std::setw(2) << ((x >> 16) & 0xFF) << "." << std::setw(3) << ((x >> 24) & 0xFF);
 	return s.str();
@@ -145,14 +144,16 @@ int Run::doSplit()
 		pb.push_back(i.pb);
 	}
 
-	if (ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), &invAddress, 4, &bytesRead))
+	if (ReadProcessMemory(phandle, (void*)(baseAddress + FRAME_COUNTER_OFFSET), &iramAddr, 4, &bytesRead))
 	{
-		if (!ReadProcessMemory(phandle, (LPCVOID)((DWORD)invAddress + MISSILE_OFFSET), &invValue, 4, &bytesRead))
+		if (!ReadProcessMemory(phandle, (LPCVOID)((DWORD)iramAddr + MISSILE_OFFSET), &invValue, 4, &bytesRead))
 		{
 			output("ROM not loaded. (" << GetLastError() << ")");
 
 			if (bytesRead != 0)
 				output("Bytes read: " << bytesRead);
+
+			return 1;
 		}
 	}
 	else
@@ -161,6 +162,8 @@ int Run::doSplit()
 
 		if (bytesRead != 0)
 			output("Bytes read: " << bytesRead);
+
+		return 1;
 	}
 
 	do

@@ -50,7 +50,7 @@ public:
 	typedef std::vector<Segment> Attempt;
 	Attempt* run;
 	DWORD pid;
-	int invAddress = 0;
+	int iramAddr = 0;
 	int missilesAddress = 0;
 	int128_t invValue;
 	int missilesValue = 0;
